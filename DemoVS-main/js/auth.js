@@ -1,4 +1,6 @@
 // Shared auth helpers, used across every page
+// UPDATED for migration 0002: the database now creates the profile row
+// (via a trigger), so signUp() only sends the details as metadata.
 
 async function getCurrentUser() {
   const { data: { user } } = await supabaseClient.auth.getUser();
@@ -26,22 +28,27 @@ async function logOut() {
   window.location.href = 'index.html';
 }
 
+// Returns { user, session }.
+// If "Confirm email" is ON in Supabase, session is null until the person
+// clicks the link in their email, so the page should tell them to check email.
 async function signUp({ email, password, fullName, role, phone, studentNumber, university, companyName }) {
-  const { data, error } = await supabaseClient.auth.signUp({ email, password });
+  const { data, error } = await supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: fullName,
+        role: role,
+        phone: phone || '',
+        student_number: role === 'student' ? (studentNumber || '') : '',
+        university: role === 'student' ? (university || '') : '',
+        company_name: role === 'landlord' ? (companyName || '') : ''
+      }
+    }
+  });
   if (error) throw error;
 
-  const { error: profileError } = await supabaseClient.from('profiles').insert({
-    id: data.user.id,
-    role,
-    full_name: fullName,
-    phone: phone || null,
-    student_number: role === 'student' ? (studentNumber || null) : null,
-    university: role === 'student' ? (university || null) : null,
-    company_name: role === 'landlord' ? (companyName || null) : null,
-  });
-  if (profileError) throw profileError;
-
-  return data.user;
+  return { user: data.user, session: data.session };
 }
 
 async function logIn({ email, password }) {
