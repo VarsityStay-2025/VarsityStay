@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VarsityStay — Find Your Stay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="page">
+    <div id="nav-placeholder"></div>
+
+    <main class="main">
+      <section class="hero">
+        <div class="hero-content">
+          <span class="hero-badge">● Verified listings near your campus</span>
+          <h1>Find student accommodation you can trust</h1>
+          <p>Search verified rooms, compare landlords, and reserve online — no scams, no guesswork.</p>
+        </div>
+
+        <div class="search-card">
+          <p class="search-label">📍 WHERE ARE YOU STUDYING?</p>
+          <div class="search-grid">
+            <select id="university-select">
+              <option value="">Any university</option>
+            </select>
+            <select id="room-type-select">
+              <option value="">Any room type</option>
+              <option value="Single room">Single room</option>
+              <option value="Shared room">Shared room</option>
+              <option value="Studio">Studio</option>
+            </select>
+          </div>
+
+          <div class="budget-row">
+            <span>💰 MONTHLY BUDGET</span>
+            <span class="budget-value" id="budget-display">R15,000</span>
+          </div>
+          <input type="range" id="budget-slider" min="500" max="30000" step="100" value="15000">
+          <div class="range-labels"><span>R0</span><span>R30,000</span></div>
+
+          <label class="checkbox-row">
+            <input type="checkbox" id="nsfas-checkbox">
+            NSFAS-friendly only
+          </label>
+
+          <button class="btn btn-primary btn-block" style="margin-top:20px" id="search-btn">🔍 Find My Stay</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    const budgetSlider = document.getElementById('budget-slider');
+    const budgetDisplay = document.getElementById('budget-display');
+    budgetSlider.addEventListener('input', () => {
+      budgetDisplay.textContent = 'R' + Number(budgetSlider.value).toLocaleString();
+    });
+
+    async function loadUniversities() {
+      const { data } = await supabaseClient.from('properties').select('university');
+      if (!data) return;
+      const unique = [...new Set(data.map(r => r.university))].sort();
+      const select = document.getElementById('university-select');
+      unique.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = u;
+        select.appendChild(opt);
+      });
+    }
+    loadUniversities();
+
+    document.getElementById('search-btn').addEventListener('click', () => {
+      const params = new URLSearchParams();
+      const uni = document.getElementById('university-select').value;
+      const roomType = document.getElementById('room-type-select').value;
+      const nsfas = document.getElementById('nsfas-checkbox').checked;
+      if (uni) params.set('university', uni);
+      if (roomType) params.set('room_type', roomType);
+      params.set('max_budget', budgetSlider.value);
+      if (nsfas) params.set('nsfas_only', 'true');
+      window.location.href = 'properties.html?' + params.toString();
+    });
+  </script>
+</body>
+</html>

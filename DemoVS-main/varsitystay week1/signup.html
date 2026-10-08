@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — VarsityStay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="page">
+    <div id="nav-placeholder"></div>
+    <main class="main" style="background:var(--gray-50)">
+      <div class="form-card">
+        <h1>Create your account</h1>
+        <p class="form-sub">Find a stay, or list your property.</p>
+
+        <div class="role-toggle">
+          <button type="button" class="active" data-role="student">I'm a student</button>
+          <button type="button" data-role="landlord">I'm a landlord</button>
+        </div>
+
+        <div class="error-box hidden" id="error-box"></div>
+
+        <form id="signup-form">
+          <input class="field" name="full_name" placeholder="Full name" required>
+          <input class="field" name="email" type="email" placeholder="Email address" required>
+          <input class="field" name="password" type="password" placeholder="Password" minlength="6" required>
+          <input class="field" name="phone" placeholder="Phone number">
+
+          <div id="student-fields">
+            <input class="field" name="student_number" placeholder="Student number">
+            <input class="field" name="university" placeholder="University">
+          </div>
+          <div id="landlord-fields" class="hidden">
+            <input class="field" name="company_name" placeholder="Company / property name (optional)">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px">Create account</button>
+        </form>
+
+        <p class="form-footer">Already have an account? <a href="login.html">Log in</a></p>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    let currentRole = 'student';
+    document.querySelectorAll('.role-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.role-toggle button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentRole = btn.dataset.role;
+        document.getElementById('student-fields').classList.toggle('hidden', currentRole !== 'student');
+        document.getElementById('landlord-fields').classList.toggle('hidden', currentRole !== 'landlord');
+      });
+    });
+
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('error-box');
+      errorBox.classList.add('hidden');
+      const fd = new FormData(e.target);
+
+      try {
+        await signUp({
+          email: fd.get('email'),
+          password: fd.get('password'),
+          fullName: fd.get('full_name'),
+          role: currentRole,
+          phone: fd.get('phone'),
+          studentNumber: fd.get('student_number'),
+          university: fd.get('university'),
+          companyName: fd.get('company_name'),
+        });
+        window.location.href = currentRole === 'landlord' ? 'dashboard-landlord.html' : 'dashboard-student.html';
+      } catch (err) {
+        errorBox.textContent = err.message || 'Something went wrong.';
+        errorBox.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>
