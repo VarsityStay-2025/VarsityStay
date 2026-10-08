@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .info-box { background: rgba(16,185,129,.1); color: var(--green); font-size: 13px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+  </style>
 </head>
 <body>
   <div class="page">
@@ -22,6 +25,7 @@
         </div>
 
         <div class="error-box hidden" id="error-box"></div>
+        <div class="info-box hidden" id="info-box"></div>
 
         <form id="signup-form">
           <input class="field" name="full_name" placeholder="Full name" required>
@@ -37,7 +41,7 @@
             <input class="field" name="company_name" placeholder="Company / property name (optional)">
           </div>
 
-          <button type="submit" class="btn btn-primary btn-block" style="margin-top:8px">Create account</button>
+          <button type="submit" id="submit-btn" class="btn btn-primary btn-block" style="margin-top:8px">Create account</button>
         </form>
 
         <p class="form-footer">Already have an account? <a href="login.html">Log in</a></p>
@@ -64,11 +68,15 @@
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const errorBox = document.getElementById('error-box');
+      const infoBox = document.getElementById('info-box');
+      const submitBtn = document.getElementById('submit-btn');
       errorBox.classList.add('hidden');
+      infoBox.classList.add('hidden');
+      submitBtn.disabled = true;
       const fd = new FormData(e.target);
 
       try {
-        await signUp({
+        const result = await signUp({
           email: fd.get('email'),
           password: fd.get('password'),
           fullName: fd.get('full_name'),
@@ -78,10 +86,20 @@
           university: fd.get('university'),
           companyName: fd.get('company_name'),
         });
-        window.location.href = currentRole === 'landlord' ? 'dashboard-landlord.html' : 'dashboard-student.html';
+
+        if (result.session) {
+          // Logged in straight away (email confirmation is off)
+          window.location.href = currentRole === 'landlord' ? 'dashboard-landlord.html' : 'dashboard-student.html';
+        } else {
+          // Email confirmation is on: they must click the link in their email first
+          infoBox.textContent = 'Account created. Check your email and click the confirmation link, then log in.';
+          infoBox.classList.remove('hidden');
+          submitBtn.disabled = false;
+        }
       } catch (err) {
         errorBox.textContent = err.message || 'Something went wrong.';
         errorBox.classList.remove('hidden');
+        submitBtn.disabled = false;
       }
     });
   </script>
