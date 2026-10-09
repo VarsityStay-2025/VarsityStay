@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Find a Stay — VarsityStay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .listing-header { padding: 32px 0 8px; }
+    .listing-header h1 { font-size: 24px; }
+    .listing-header p { color: var(--gray-500); font-size: 14px; margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="nav-placeholder"></div>
+
+    <main class="main">
+      <div class="container">
+        <div class="listing-header">
+          <h1 id="result-count">Loading stays…</h1>
+          <p id="result-sub"></p>
+        </div>
+        <div class="grid" id="property-grid"></div>
+        <div class="empty-state hidden" id="empty-state">
+          <p>No listings match those filters yet.</p>
+          <p style="font-size:13px;color:var(--gray-400);margin-top:4px">Try widening your budget or picking a different university.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    function cardHTML(p) {
+      const bg = p.image_url ? `background-image:url(${p.image_url})` : '';
+      return `
+        <div class="card">
+          <div class="card-image" style="${bg}">
+            ${p.verified ? '<span class="badge badge-verified">✓ Verified</span>' : ''}
+            <span class="badge badge-price">R${Number(p.monthly_rent).toLocaleString()}/mo</span>
+          </div>
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div class="card-meta">📍 ${p.city} — ${p.distance_minutes} min walk from campus</div>
+            <div class="card-nsfas ${p.nsfas_accredited ? 'yes' : 'no'}">
+              ${p.nsfas_accredited ? '✓ NSFAS accredited' : '✕ Not NSFAS accredited'}
+            </div>
+            <div class="tags">
+              <span class="tag">${p.room_type}</span>
+              ${(p.amenities || []).slice(0, 2).map(a => `<span class="tag">${a}</span>`).join('')}
+            </div>
+            <div class="card-footer">
+              <span style="font-size:12px;font-weight:600">${p.rating ? '⭐ ' + p.rating : ''}</span>
+              <a class="card-link" href="property.html?id=${p.id}">View details</a>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function loadProperties() {
+      const params = new URLSearchParams(window.location.search);
+      let query = supabaseClient.from('properties').select('*').eq('available', true);
+
+      const university = params.get('university');
+      const roomType = params.get('room_type');
+      const maxBudget = params.get('max_budget');
+      const nsfasOnly = params.get('nsfas_only') === 'true';
+
+      if (university) query = query.eq('university', university);
+      if (roomType) query = query.eq('room_type', roomType);
+      if (maxBudget) query = query.lte('monthly_rent', Number(maxBudget));
+      if (nsfasOnly) query = query.eq('nsfas_accredited', true);
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      const grid = document.getElementById('property-grid');
+      const countEl = document.getElementById('result-count');
+      const subEl = document.getElementById('result-sub');
+      const emptyEl = document.getElementById('empty-state');
+
+      if (error) {
+        countEl.textContent = 'Something went wrong loading listings.';
+        console.error(error);
+        return;
+      }
+
+      countEl.textContent = `${data.length} ${data.length === 1 ? 'stay' : 'stays'} found`;
+      subEl.textContent = [
+        university || 'All universities',
+        maxBudget ? `up to R${Number(maxBudget).toLocaleString()}/mo` : null,
+      ].filter(Boolean).join(' · ');
+
+      if (data.length === 0) {
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      grid.innerHTML = data.map(cardHTML).join('');
+    }
+
+    loadProperties();
+  </script>
+</body>
+</html>

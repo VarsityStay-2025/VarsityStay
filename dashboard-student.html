@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Stay — VarsityStay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .res-card { background:#fff; border:1px solid var(--gray-200); border-radius:16px; padding:20px; margin-bottom:12px; }
+    .res-card .name { font-weight:700; }
+    .res-card .meta { color:var(--gray-500); font-size:13px; margin-top:2px; }
+    .status { text-transform: capitalize; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="nav-placeholder"></div>
+    <main class="main" style="background:var(--gray-50)">
+      <div class="container" style="padding-top:32px;padding-bottom:60px">
+        <div class="dash-header">
+          <div>
+            <h1>My Stay</h1>
+            <p id="signed-in-as">Loading…</p>
+          </div>
+          <button class="btn btn-ghost" id="logout-btn">Log out</button>
+        </div>
+        <div id="reservations-container"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    document.getElementById('logout-btn').addEventListener('click', logOut);
+
+    async function loadDashboard() {
+      const user = await requireAuth();
+      if (!user) return;
+
+      const profile = await getCurrentProfile();
+      document.getElementById('signed-in-as').textContent = `Signed in as ${profile?.full_name || ''}`;
+
+      const { data: reservations } = await supabaseClient
+        .from('reservations')
+        .select('*, properties(name, city, monthly_rent)')
+        .eq('student_id', user.id);
+
+      const container = document.getElementById('reservations-container');
+
+      if (!reservations || reservations.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p>You haven't reserved a room yet.</p>
+            <a href="properties.html" class="btn btn-primary" style="margin-top:16px;display:inline-flex">Browse listings</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = reservations.map(r => `
+        <div class="res-card">
+          <div class="name">${r.properties?.name || 'Property'}</div>
+          <div class="meta">${r.properties?.city || ''}</div>
+          <div class="meta">Status: <span class="status">${r.status.replace('_', ' ')}</span></div>
+        </div>
+      `).join('');
+    }
+    loadDashboard();
+  </script>
+</body>
+</html>

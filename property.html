@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VarsityStay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Sora:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .detail-wrap { max-width: 720px; margin: 0 auto; padding: 32px 24px 60px; }
+    .detail-desc { color: var(--gray-600); font-size: 14px; line-height: 1.7; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div id="nav-placeholder"></div>
+    <main class="main">
+      <div class="detail-wrap" id="detail-content">
+        <p style="color:var(--gray-500)">Loading…</p>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/nav.js"></script>
+  <script>
+    async function loadProperty() {
+      const id = new URLSearchParams(window.location.search).get('id');
+      const content = document.getElementById('detail-content');
+      if (!id) { content.innerHTML = '<p>No property specified.</p>'; return; }
+
+      const { data: p, error } = await supabaseClient.from('properties').select('*').eq('id', id).single();
+      if (error || !p) { content.innerHTML = '<p>Listing not found.</p>'; return; }
+
+      const bg = p.image_url ? `background-image:url(${p.image_url})` : '';
+      content.innerHTML = `
+        <div class="detail-hero" style="${bg}">
+          ${p.verified ? '<span class="badge badge-verified">✓ Verified</span>' : ''}
+        </div>
+        <div class="detail-title-row">
+          <div>
+            <h1>${p.name}</h1>
+            <p style="color:var(--gray-500);font-size:14px;margin-top:6px">
+              📍 ${p.city} — ${p.distance_minutes} min walk from ${p.university}
+            </p>
+          </div>
+          <div class="detail-price">R${Number(p.monthly_rent).toLocaleString()}<span style="font-size:13px;color:var(--gray-400);font-family:'DM Sans',sans-serif;font-weight:400">/mo</span></div>
+        </div>
+        <div class="tags" style="margin-top:16px">
+          <span class="tag">${p.room_type}</span>
+          ${(p.amenities || []).map(a => `<span class="tag">${a}</span>`).join('')}
+          ${p.nsfas_accredited ? '<span class="tag" style="background:rgba(16,185,129,.1);color:var(--green);font-weight:600">✓ NSFAS accredited</span>' : ''}
+        </div>
+        ${p.description ? `<p class="detail-desc">${p.description}</p>` : ''}
+        <div class="detail-actions">
+          <a href="book.html?id=${p.id}&type=viewing" class="btn btn-ghost">📅 Book a Viewing</a>
+          <a href="reserve.html?id=${p.id}" class="btn btn-primary">Reserve Room</a>
+        </div>
+      `;
+    }
+    loadProperty();
+  </script>
+</body>
+</html>
