@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <h2 id="result">Checking...</h2>
+  <script src="js/lib/supabase.js"></script>
+  <script>
+    document.getElementById('result').textContent =
+      'supabase is: ' + typeof supabase +
+      ' | createClient is: ' + (typeof supabase !== 'undefined' ? typeof supabase.createClient : 'n/a');
+  </script>
+</body>
+</html>
